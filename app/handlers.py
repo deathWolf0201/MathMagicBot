@@ -48,7 +48,7 @@ async def magic1(callback: CallbackQuery, state: FSMContext):
     await remove_inline_keyboard(callback.from_user.id, callback.message.message_id)
     await state.set_state(Magic1.first_num)
     await callback.message.answer(
-        "Загадай трехзначное число, в котором крайние цифры различны и отличаются друг от друга более чем на единицу. ",
+        "Загадай трехзначное число, в котором крайние цифры различны и отличаются друг от друга более чем на единицу.",
         reply_markup=ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text='Загадал')]], resize_keyboard=True,
                                          one_time_keyboard=True))
 
@@ -81,8 +81,7 @@ async def magic1_first_num(message: Message, state: FSMContext):
         case "Загадал":
             await state.set_state(Magic1.reverse_first_num)
             await message.answer(
-                "Поменяй местами крайние цифры и вычти из большего трехзначного числа меньшее. Напиши, что у тебя "
-                "получилось.",
+                "Поменяй местами крайние цифры и вычти из большего трехзначного числа меньшее.",
                 reply_markup=ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text='Поменял')]], resize_keyboard=True,
                                                  one_time_keyboard=True))
         case _:
@@ -96,7 +95,7 @@ async def magic1_reverse_first_num(message: Message, state: FSMContext):
             await state.set_state(Magic1.deactivate)
             await message.answer(
                 "Опять переставь крайние числа, и получившееся число прибавь к разности первых двух. Дай-ка угадаю, "
-                "у тебя должно получиться число 1089!! Напиши, что у тебя получилось.",
+                "у тебя должно получиться число 1089!! Верно?",
                 reply_markup=ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text='Да')], [KeyboardButton(text='Нет')]],
                                                  resize_keyboard=True,
                                                  one_time_keyboard=True))
