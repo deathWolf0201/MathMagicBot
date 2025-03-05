@@ -25,6 +25,13 @@ class Magic2(StatesGroup):
     res_number = State()
 
 
+class Magic3(StatesGroup):
+    num_input = State()
+    digit_sum = State()
+    sub_sum = State()
+    cross_digit = State()
+
+
 @router.message(CommandStart())
 async def cmd_start(message: Message):
     await message.answer("Добро пожаловать в магию чисел. Выберите один из 3-х фокусов в магической шляпе",
@@ -53,6 +60,17 @@ async def magic2(callback: CallbackQuery, state: FSMContext):
     await state.set_state(Magic2.date_input)
     await callback.message.answer(
         "Загадай любую дату рождения.",
+        reply_markup=ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text='Загадал')]], resize_keyboard=True,
+                                         one_time_keyboard=True))
+
+
+@router.callback_query(F.data == "magic3")
+async def magic3(callback: CallbackQuery, state: FSMContext):
+    await callback.answer('')
+    await remove_inline_keyboard(callback.from_user.id, callback.message.message_id)
+    await state.set_state(Magic3.num_input)
+    await callback.message.answer(
+        "Загадай любое многозначное число.",
         reply_markup=ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text='Загадал')]], resize_keyboard=True,
                                          one_time_keyboard=True))
 
@@ -171,7 +189,58 @@ async def res_number(message: Message, state: FSMContext):
             f"Ваш день и месяц рождения: {Magic2.res_number.res // 100}.{"%02d" % (Magic2.res_number.res % 100)}")
         await change_trick(message)
         return
-    await message.answer("Я ожидаю получить число. Причём целое")
+    await message.answer("Я ожидаю получить число. Причём целое.")
+
+
+@router.message(Magic3.num_input)
+async def num_input(message: Message, state: FSMContext):
+    match message.text:
+        case "Загадал":
+            await state.set_state(Magic3.digit_sum)
+            await message.answer(
+                "Найди сумму цифр этого числа.",
+                reply_markup=ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text='Нашёл')]], resize_keyboard=True,
+                                                 one_time_keyboard=True))
+        case _:
+            await wrong_message(message)
+
+
+@router.message(Magic3.digit_sum)
+async def digit_sum(message: Message, state: FSMContext):
+    match message.text:
+        case "Нашёл":
+            await state.set_state(Magic3.sub_sum)
+            await message.answer("Отними от задуманного числа эту сумму цифр.",
+                                 reply_markup=ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text='Отнял')]],
+                                                                  resize_keyboard=True,
+                                                                  one_time_keyboard=True))
+        case _:
+            await wrong_message(message)
+
+
+@router.message(Magic3.sub_sum)
+async def digit_sum(message: Message, state: FSMContext):
+    match message.text:
+        case "Отнял":
+            await state.set_state(Magic3.cross_digit)
+            await message.answer("В числе, которое получится, зачеркни любую цифру и введи остальные.")
+        case _:
+            await wrong_message(message)
+
+
+@router.message(Magic3.cross_digit)
+async def digit_sum(message: Message, state: FSMContext):
+    if message.text.isdigit():
+        num = int(message.text)
+        summ = 0
+        while num > 0:
+            summ += num % 10
+            num //= 10
+        await message.answer(f"Зачёркнутая цифра: {(summ // 9 + 1) * 9 - summ}")
+        await state.clear()
+        await change_trick(message)
+        return
+    await message.answer("Я ожидаю получить число. Причём целое.")
 
 
 @router.message()
