@@ -16,6 +16,15 @@ class Magic1(StatesGroup):
     reverse_first_num = State()
 
 
+class Magic2(StatesGroup):
+    date_input = State()
+    high_2 = State()
+    add_5 = State()
+    high_50 = State()
+    add_month = State()
+    res_number = State()
+
+
 @router.message(CommandStart())
 async def cmd_start(message: Message):
     await message.answer("Добро пожаловать в магию чисел. Выберите один из 3-х фокусов в магической шляпе",
@@ -37,6 +46,17 @@ async def magic1(callback: CallbackQuery, state: FSMContext):
                                          one_time_keyboard=True))
 
 
+@router.callback_query(F.data == "magic2")
+async def magic2(callback: CallbackQuery, state: FSMContext):
+    await callback.answer('')
+    await remove_inline_keyboard(callback.from_user.id, callback.message.message_id)
+    await state.set_state(Magic2.date_input)
+    await callback.message.answer(
+        "Загадай любую дату рождения.",
+        reply_markup=ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text='Загадал')]], resize_keyboard=True,
+                                         one_time_keyboard=True))
+
+
 @router.message(Magic1.first_num)
 async def magic1_first_num(message: Message, state: FSMContext):
     match message.text:
@@ -48,7 +68,7 @@ async def magic1_first_num(message: Message, state: FSMContext):
                 reply_markup=ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text='Поменял')]], resize_keyboard=True,
                                                  one_time_keyboard=True))
         case _:
-            await message.answer('Простите, я вас не понял')
+            await wrong_message(message)
 
 
 @router.message(Magic1.reverse_first_num)
@@ -63,7 +83,7 @@ async def magic1_reverse_first_num(message: Message, state: FSMContext):
                                                  resize_keyboard=True,
                                                  one_time_keyboard=True))
         case _:
-            await message.answer('Простите, я вас не понял')
+            await wrong_message(message)
 
 
 @router.message(Magic1.deactivate)
@@ -74,10 +94,84 @@ async def magic1_deactivate(message: Message, state: FSMContext):
         case "Нет":
             await message.answer("Проверь предыдущие шаги, возможно, ты где-то допустил ошибку…")
         case _:
-            await message.answer('Простите, я вас не понял')
+            await wrong_message(message)
             return
     await state.clear()
     await change_trick(message)
+
+
+@router.message(Magic2.date_input)
+async def date_input(message: Message, state: FSMContext):
+    match message.text:
+        case "Загадал":
+            await state.set_state(Magic2.high_2)
+            await message.answer(
+                "Умножь на 2 число дня рождения.",
+                reply_markup=ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text='Умножил')]], resize_keyboard=True,
+                                                 one_time_keyboard=True))
+        case _:
+            await wrong_message(message)
+
+
+@router.message(Magic2.high_2)
+async def high_2(message: Message, state: FSMContext):
+    match message.text:
+        case "Умножил":
+            await state.set_state(Magic2.add_5)
+            await message.answer(
+                "К результату прибавь 5.",
+                reply_markup=ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text='Прибавил')]], resize_keyboard=True,
+                                                 one_time_keyboard=True))
+        case _:
+            await wrong_message(message)
+
+
+@router.message(Magic2.add_5)
+async def add_5(message: Message, state: FSMContext):
+    match message.text:
+        case "Прибавил":
+            await state.set_state(Magic2.high_50)
+            await message.answer(
+                "Умножь результат на 50.",
+                reply_markup=ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text='Умножил')]], resize_keyboard=True,
+                                                 one_time_keyboard=True))
+        case _:
+            await wrong_message(message)
+
+
+@router.message(Magic2.high_50)
+async def high_50(message: Message, state: FSMContext):
+    match message.text:
+        case "Умножил":
+            await state.set_state(Magic2.add_month)
+            await message.answer(
+                "Прибавь номер месяца рождения.",
+                reply_markup=ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text='Прибавил')]], resize_keyboard=True,
+                                                 one_time_keyboard=True))
+        case _:
+            await wrong_message(message)
+
+
+@router.message(Magic2.add_month)
+async def add_month(message: Message, state: FSMContext):
+    match message.text:
+        case "Прибавил":
+            await state.set_state(Magic2.res_number)
+            await message.answer("Введи полученное число.")
+        case _:
+            await wrong_message(message)
+
+
+@router.message(Magic2.res_number)
+async def res_number(message: Message, state: FSMContext):
+    if message.text.isdigit():
+        await state.clear()
+        Magic2.res_number.res = int(message.text) - 250
+        await message.answer(
+            f"Ваш день и месяц рождения: {Magic2.res_number.res // 100}.{"%02d" % (Magic2.res_number.res % 100)}")
+        await change_trick(message)
+        return
+    await message.answer("Я ожидаю получить число. Причём целое")
 
 
 @router.message()
